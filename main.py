@@ -1,13 +1,15 @@
+from sklearn.model_selection import train_test_split
 import numpy as np
 import pandas as pd
 
 class SequentialModel(object):
     '''A class that manages a certain sequence of layers in a neural network    '''
-    self.layers = []
-    self.loss_func = 'square_error'
-    self.learn_rate = 0.2
+
 
     def __init__(self, layers, loss_func, learn_rate):
+        self.layers = []
+        self.loss_func = 'square_error'
+        self.learn_rate = 0.2
         raise NotImplementedError("SequentialModel")
 
     def add_layer(self, layer, pos=-1):
@@ -30,15 +32,22 @@ class SequentialModel(object):
         '''Loads all layers and hyperparameters from an yaml file (using the yaml library)'''
         raise NotImplementedError("load")
 class DenseLayer(object):
-    self.units = 1
-    self.activation = 'relu'
-    self.weights = None
+
 
     def __init__(self, units, activation):
-        raise NotImplementedError("DenseLayer")
+        self.units = units
+        self.activation = activation
+        self.weights = None
+        self.bias = None
 
     def apply(self, x_data):
-        raise NotImplementedError("apply")
+        input_size = x_data.shape[0]
+        if self.weights is None:
+            # Initialize weights and bias if they are not already initialized
+            self.weights = np.array(np.random.rand(input_size, self.units))
+            self.bias = np.zeros(self.units)
+        print(self.weights.shape)
+        print(self.bias.shape)
 
     def back_propagation(self, x_data, y_real, y_pred, learn_rate):
         raise NotImplementedError("feed_forward")
@@ -47,6 +56,24 @@ class DenseLayer(object):
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    print("Hello World")
+    iris_data = pd.read_csv('iris.csv')
+    X = iris_data.iloc[:, :-1].values
+    y = iris_data.iloc[:, -1].values
+    X_train, X_temp, y_train, y_temp = train_test_split(
+        X, y,
+        test_size=0.2,
+        stratify=y,
+        random_state=42
+    )
+
+    X_val, X_test, y_val, y_test = train_test_split(
+        X_temp, y_temp,
+        test_size=0.5,
+        stratify=y_temp,
+        random_state=42
+    )
+    denseLayer = DenseLayer(3, 'relu' )
+    denseLayer.apply(X_train[0])
+
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
