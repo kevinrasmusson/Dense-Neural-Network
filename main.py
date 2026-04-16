@@ -10,11 +10,13 @@ class SequentialModel(object):
         self.layers = []
         self.loss_func = 'square_error'
         self.learn_rate = 0.2
-        raise NotImplementedError("SequentialModel")
 
     def add_layer(self, layer, pos=-1):
         '''Adds a new layer `layer` to the model at position pos in sequence'''
-        raise NotImplementedError("add_layer")
+        if pos == -1:
+            self.layers.append(layer)
+        else:
+             self.layers.insert(pos, layer)
 
     def train(self, x_data, y_data, epochs):
         '''Goes through each input datapoint in x_data and y_data and perform feed_forward and feed_backward on each of the datapoint. Repeat the procedure for epochs times.'''
@@ -22,7 +24,10 @@ class SequentialModel(object):
 
     def predict(self, x_data):
         '''Performs predictions on all datapoints in x_data and returns an array of the predictions given by the results of feed_forward'''
-        raise NotImplementedError("predict")
+        output = x_data
+        for layer in self.layers:
+            output = layer.apply(output)
+        return output
 
     def save(self, filename):
         '''Saves all layers and hyperparameters into an yaml file (using the yaml library)'''
@@ -61,7 +66,7 @@ class DenseLayer(object):
 
 
 
-# Press the green button in the gutter to run the script.
+
 if __name__ == '__main__':
     iris_data = pd.read_csv('iris.csv')
     X = iris_data.iloc[:, :-1].values
@@ -79,8 +84,16 @@ if __name__ == '__main__':
         stratify=y_temp,
         random_state=42
     )
-    denseLayer = DenseLayer(3, 'relu' )
-    denseLayer.apply(X_train[0])
+    model = SequentialModel([], 'square_error', 0.2)
+    model.add_layer(DenseLayer(5, 'relu'))
+    model.add_layer(DenseLayer(3, 'softmax'))
+
+    sample = X_train[0]
+    pred = model.predict(sample)
+
+    print("Input:", sample)
+    print("Prediction:", pred)
+    print("Prediction shape:", pred.shape)
+    print("Prediction sum:", np.sum(pred))
 
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
