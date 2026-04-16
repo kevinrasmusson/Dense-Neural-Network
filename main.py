@@ -43,12 +43,19 @@ class DenseLayer(object):
     def apply(self, x_data):
         input_size = x_data.shape[0]
         if self.weights is None:
-            # Initialize weights and bias if they are not already initialized
-            self.weights = np.array(np.random.rand(input_size, self.units))
+            self.weights = np.random.rand(input_size, self.units)
             self.bias = np.zeros(self.units)
-        print(self.weights.shape)
-        print(self.bias.shape)
-
+        z = np.dot(x_data, self.weights) + self.bias
+        if self.activation == 'relu':
+            a = np.maximum(z, 0)
+        elif self.activation == 'sigmoid':
+            a = 1 / (1 + np.exp(-z))
+        elif self.activation == 'softmax':
+            exp_z = np.exp(z - np.max(z))
+            a = exp_z / np.sum(exp_z)
+        else:
+            raise ValueError(f"Unsupported activation: {self.activation}")
+        return a
     def back_propagation(self, x_data, y_real, y_pred, learn_rate):
         raise NotImplementedError("feed_forward")
 
