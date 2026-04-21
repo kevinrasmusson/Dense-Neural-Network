@@ -20,7 +20,19 @@ class SequentialModel(object):
 
     def train(self, x_data, y_data, epochs):
         '''Goes through each input datapoint in x_data and y_data and perform feed_forward and feed_backward on each of the datapoint. Repeat the procedure for epochs times.'''
-        raise NotImplementedError("train")
+        for epoch in range(epochs):
+            losses = []
+            for i in range(len(x_data)):
+                x_sample = x_data[i]
+                y_sample = y_data[i]
+                y_pred = self.predict(x_sample)
+                mse = np.mean((y_sample - y_pred) ** 2)
+                losses.append(mse)
+                grad = y_pred - y_sample
+                for layer in reversed(self.layers):
+                    grad = layer.back_propagation(grad, self.learn_rate)
+            epoch_loss = np.mean(losses)
+            print(epoch_loss)
 
     def predict(self, x_data):
         '''Performs predictions on all datapoints in x_data and returns an array of the predictions given by the results of feed_forward'''
@@ -38,7 +50,6 @@ class SequentialModel(object):
         raise NotImplementedError("load")
 class DenseLayer(object):
 
-
     def __init__(self, units, activation):
         self.units = units
         self.activation = activation
@@ -47,6 +58,7 @@ class DenseLayer(object):
 
     def apply(self, x_data):
         input_size = x_data.shape[0]
+
         if self.weights is None:
             self.weights = np.random.rand(input_size, self.units)
             self.bias = np.zeros(self.units)
@@ -60,9 +72,32 @@ class DenseLayer(object):
             a = exp_z / np.sum(exp_z)
         else:
             raise ValueError(f"Unsupported activation: {self.activation}")
+        self.last_input = x_data
+        self.last_z = z
+        self.last_output = a
         return a
-    def back_propagation(self, x_data, y_real, y_pred, learn_rate):
-        raise NotImplementedError("feed_forward")
+    def back_propagation(self, grad, learn_rate):
+        if self.activation == 'relu':
+            activation_grad = (self.last_z > 0).astype(float)
+        elif self.activation == 'sigmoid':
+            sigmoid = 1 / (1 + np.exp(-self.last_z))
+            activation_grad = sigmoid * (1 - sigmoid)
+        elif self.activation == 'softmax':
+            activation_grad = self.last_output * (1 - self.last_output)
+        else:
+            raise ValueError(f"Unsupported activation: {self.activation}")
+        # Local gradient
+        grad = np.multiply(activation_grad, grad)
+        weight_grad = np.outer(self.last_input, grad)
+        bias_grad = grad
+        prev_grad = np.dot(self.weights, grad)
+        self.weights = self.weights - learn_rate * weight_grad
+        self.bias = self.bias - learn_rate * bias_grad
+        return prev_grad
+
+
+
+
 
 
 
@@ -71,19 +106,32 @@ if __name__ == '__main__':
     iris_data = pd.read_csv('iris.csv')
     X = iris_data.iloc[:, :-1].values
     y = iris_data.iloc[:, -1].values
-    X_train, X_temp, y_train, y_temp = train_test_split(
-        X, y,
+
+    label_map = {
+        'setosa': 0,
+        'versicolor': 1,
+        'virginica': 2
+    }
+
+    y_int = np.array([label_map[label] for label in y])
+
+    X_train, X_temp, y_train_int, y_temp_int = train_test_split(
+        X, y_int,
         test_size=0.2,
-        stratify=y,
+        stratify=y_int,
         random_state=42
     )
 
-    X_val, X_test, y_val, y_test = train_test_split(
-        X_temp, y_temp,
+    X_val, X_test, y_val_int, y_test_int = train_test_split(
+        X_temp, y_temp_int,
         test_size=0.5,
-        stratify=y_temp,
+        stratify=y_temp_int,
         random_state=42
     )
+
+    y_train = np.eye(3)[y_train_int]
+    y_val = np.eye(3)[y_val_int]
+    y_test = np.eye(3)[y_test_int]
     model = SequentialModel([], 'square_error', 0.2)
     model.add_layer(DenseLayer(5, 'relu'))
     model.add_layer(DenseLayer(3, 'softmax'))
@@ -95,5 +143,6 @@ if __name__ == '__main__':
     print("Prediction:", pred)
     print("Prediction shape:", pred.shape)
     print("Prediction sum:", np.sum(pred))
+
 
 
