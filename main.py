@@ -89,7 +89,6 @@ class DenseLayer(object):
 
     def apply(self, x_data):
         input_size = x_data.shape[0]
-
         if self.weights is None:
             self.weights = np.random.rand(input_size, self.units)
             self.bias = np.zeros(self.units)
