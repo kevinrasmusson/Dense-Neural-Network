@@ -64,7 +64,21 @@ class SequentialModel(object):
 
     def load(self, filename):
         '''Loads all layers and hyperparameters from an yaml file (using the yaml library)'''
-        raise NotImplementedError("load")
+        with open(filename, 'r') as file_in:
+            data = yaml.safe_load(file_in)
+
+        self.learn_rate = data['learn_rate']
+        self.loss_func = data['loss_function']
+        self.layers = []
+
+        for layer_data in data['layers']:
+            layer = DenseLayer(
+                layer_data['units'],
+                layer_data['activation']
+            )
+            layer.weights = np.array(layer_data['weights'])
+            layer.bias = np.array(layer_data['bias'])
+            self.layers.append(layer)
 class DenseLayer(object):
 
     def __init__(self, units, activation):
