@@ -1,15 +1,16 @@
 from sklearn.model_selection import train_test_split
 import numpy as np
 import pandas as pd
+import yaml
 
 class SequentialModel(object):
     '''A class that manages a certain sequence of layers in a neural network    '''
 
 
     def __init__(self, layers, loss_func, learn_rate):
-        self.layers = []
-        self.loss_func = 'square_error'
-        self.learn_rate = 0.2
+        self.layers = list(layers)
+        self.loss_func = loss_func
+        self.learn_rate = learn_rate
 
     def add_layer(self, layer, pos=-1):
         '''Adds a new layer `layer` to the model at position pos in sequence'''
@@ -43,7 +44,23 @@ class SequentialModel(object):
 
     def save(self, filename):
         '''Saves all layers and hyperparameters into an yaml file (using the yaml library)'''
-        raise NotImplementedError("save")
+
+        data = {
+            'learn_rate': self.learn_rate,
+            'loss_function': self.loss_func,
+            'layers': []
+        }
+
+        for layer in self.layers:
+            data['layers'].append({
+                'units': layer.units,
+                'activation': layer.activation,
+                'weights': layer.weights.tolist(),
+                'bias': layer.bias.tolist()
+            })
+
+        with open(filename, 'w') as file_out:
+            yaml.dump(data, file_out)
 
     def load(self, filename):
         '''Loads all layers and hyperparameters from an yaml file (using the yaml library)'''
@@ -95,14 +112,8 @@ class DenseLayer(object):
         self.bias = self.bias - learn_rate * bias_grad
         return prev_grad
 
-
-
-
-
-
-
-
 if __name__ == '__main__':
+    np.random.seed(42)
     iris_data = pd.read_csv('iris.csv')
     X = iris_data.iloc[:, :-1].values
     y = iris_data.iloc[:, -1].values
@@ -139,10 +150,20 @@ if __name__ == '__main__':
     sample = X_train[0]
     pred = model.predict(sample)
 
-    print("Input:", sample)
-    print("Prediction:", pred)
-    print("Prediction shape:", pred.shape)
-    print("Prediction sum:", np.sum(pred))
+    model.train(X_train, y_train, 10)
+    correct = 0
+
+    for i in range(len(X_test)):
+        pred = model.predict(X_test[i])
+        pred_class = np.argmax(pred)
+        true_class = np.argmax(y_test[i])
+
+        if pred_class == true_class:
+            correct += 1
+
+    accuracy = correct / len(X_test)
+    print("Accuracy:", accuracy)
+    model.save('model.yaml')
 
 
 
