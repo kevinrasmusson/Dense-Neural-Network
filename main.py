@@ -6,7 +6,6 @@ import yaml
 class SequentialModel(object):
     '''A class that manages a certain sequence of layers in a neural network    '''
 
-
     def __init__(self, layers, loss_func, learn_rate):
         self.layers = list(layers)
         self.loss_func = loss_func
@@ -79,6 +78,8 @@ class SequentialModel(object):
             layer.weights = np.array(layer_data['weights'])
             layer.bias = np.array(layer_data['bias'])
             self.layers.append(layer)
+
+
 class DenseLayer(object):
 
     def __init__(self, units, activation):
@@ -124,7 +125,18 @@ class DenseLayer(object):
         self.weights = self.weights - learn_rate * weight_grad
         self.bias = self.bias - learn_rate * bias_grad
         return prev_grad
+def evaluate(model, X_data, y_data):
+    correct = 0
 
+    for i in range(len(X_data)):
+        pred = model.predict(X_data[i])
+        pred_class = np.argmax(pred)
+        true_class = np.argmax(y_data[i])
+
+        if pred_class == true_class:
+            correct += 1
+
+    return correct / len(X_data)
 if __name__ == '__main__':
     np.random.seed(42)
     iris_data = pd.read_csv('iris.csv')
@@ -156,26 +168,19 @@ if __name__ == '__main__':
     y_train = np.eye(3)[y_train_int]
     y_val = np.eye(3)[y_val_int]
     y_test = np.eye(3)[y_test_int]
-    model = SequentialModel([], 'square_error', 0.2)
-    model.add_layer(DenseLayer(5, 'relu'))
-    model.add_layer(DenseLayer(3, 'softmax'))
+    model = SequentialModel([
+        DenseLayer(5, 'relu'),
+        DenseLayer(3, 'softmax')
+    ], 'square_error', 0.2)
 
-    sample = X_train[0]
-    pred = model.predict(sample)
+    model.train(X_train, y_train, epochs=100)
 
-    model.train(X_train, y_train, 10)
-    correct = 0
+    val_accuracy = evaluate(model, X_val, y_val)
+    test_accuracy = evaluate(model, X_test, y_test)
 
-    for i in range(len(X_test)):
-        pred = model.predict(X_test[i])
-        pred_class = np.argmax(pred)
-        true_class = np.argmax(y_test[i])
+    print("Validation accuracy:", val_accuracy)
+    print("Test accuracy:", test_accuracy)
 
-        if pred_class == true_class:
-            correct += 1
-
-    accuracy = correct / len(X_test)
-    print("Accuracy:", accuracy)
     model.save('model.yaml')
 
 
